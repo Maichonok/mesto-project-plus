@@ -2,6 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import { RequestUser } from "../types/types";
 import card from "../models/card";
 
+const { BadRequestError } = require("../errors/BadRequest");
+const { NotFoundError } = require("../errors/NotFound");
+
 export const createCard = (
   req: RequestUser,
   res: Response,
@@ -17,7 +20,10 @@ export const createCard = (
       res.status(200).send({ message: data });
     })
     .catch((error) => {
-      console.log(error);
+      if (error.name === "BadRequest") {
+        throw new BadRequestError("Incorrect data provided");
+      }
+
       next(error);
     });
 };
@@ -45,6 +51,42 @@ export const deleteCard = async (
   const data = await card
     .findOneAndRemove({ _id: req.params.cardId })
     .orFail(new Error("Roll number entered incorrected."));
+
+  res.send(data);
+};
+
+export const likeCard = async (
+  req: RequestUser,
+  res: Response,
+  next: NextFunction
+) => {
+  const data = await card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user?._id } },
+    { new: true }
+  );
+
+  if (!data) {
+    throw new NotFoundError();
+  }
+
+  res.send(data);
+};
+
+export const dislikeCard = async (
+  req: RequestUser,
+  res: Response,
+  next: NextFunction
+) => {
+  const data = await card.findByIdAndUpdate(
+    req.params.cardId,
+    { $pull: { likes: req.user?._id } },
+    { new: true }
+  );
+
+  if (!data) {
+    throw new NotFoundError();
+  }
 
   res.send(data);
 };

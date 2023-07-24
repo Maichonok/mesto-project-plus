@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
+import { errorHandler } from "./middlewares/ErrorHandler";
 import userRouter from "./routes/users";
 import cardRouter from "./routes/cards";
 import { RequestUser } from "./types/types";
@@ -26,6 +27,8 @@ app.get("/", (req: Request, res: Response) => {
 
 app.use("/users", userRouter);
 app.use("/cards", cardRouter);
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server is listening on ${PORT}`);
