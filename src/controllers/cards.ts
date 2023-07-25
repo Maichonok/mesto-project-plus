@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from "express";
 import { RequestUser } from "../types/types";
 import card from "../models/card";
 
-const { BadRequestError } = require("../errors/BadRequest");
-const { NotFoundError } = require("../errors/NotFound");
+const BadRequestError = require("../errors/BadRequest");
+const NotFoundError = require("../errors/NotFound");
 
 export const createCard = (
   req: RequestUser,
@@ -24,7 +24,7 @@ export const createCard = (
         return next(new BadRequestError("Incorrect data provided"));
       }
 
-      next(error);
+      return next(error);
     });
 };
 
@@ -50,13 +50,14 @@ export const deleteCard = (
 ) => {
   card
     .findOneAndRemove({ _id: req.params.cardId })
-    .then(data => {
+    .then((data) => {
       if (!data) {
         return next(NotFoundError());
       }
-      res.send(data);
+
+      return res.send(data);
     })
-    .catch(error => next(error))
+    .catch((error) => next(error));
 };
 
 export const likeCard = (
@@ -64,18 +65,22 @@ export const likeCard = (
   res: Response,
   next: NextFunction
 ) => {
-  card.findByIdAndUpdate(
-    req.params.cardId,
-    { $addToSet: { likes: req.user?._id } },
-    { new: true }
-  ).then(data => {
-    if (!data) {
-      return next(NotFoundError());
-    }
-    res.send(data);
-  }).catch(error => {
-    next(error);
-  });
+  card
+    .findByIdAndUpdate(
+      req.params.cardId,
+      { $addToSet: { likes: req.user?._id } },
+      { new: true }
+    )
+    .then((data) => {
+      if (!data) {
+        return next(NotFoundError());
+      }
+
+      return res.send(data);
+    })
+    .catch((error) => {
+      next(error);
+    });
 };
 
 export const dislikeCard = async (
@@ -83,16 +88,20 @@ export const dislikeCard = async (
   res: Response,
   next: NextFunction
 ) => {
-  await card.findByIdAndUpdate(
-    req.params.cardId,
-    { $pull: { likes: req.user?._id } },
-    { new: true }
-  ).then(data => {
-    if (!data) {
-      return next(NotFoundError());
-    }
-    res.send(data);
-  }).catch(error => {
-    next(error);
-  });
+  await card
+    .findByIdAndUpdate(
+      req.params.cardId,
+      { $pull: { likes: req.user?._id } },
+      { new: true }
+    )
+    .then((data) => {
+      if (!data) {
+        return next(NotFoundError());
+      }
+
+      return res.send(data);
+    })
+    .catch((error) => {
+      next(error);
+    });
 };

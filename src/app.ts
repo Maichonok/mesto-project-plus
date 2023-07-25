@@ -1,10 +1,10 @@
 import express, { Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import { errorHandler } from "./middlewares/ErrorHandler";
+import errorHandler from "./middlewares/ErrorHandler";
 import userRouter from "./routes/users";
 import cardRouter from "./routes/cards";
 import { RequestUser } from "./types/types";
-import { NotFoundError } from "./errors/NotFound";
+import NotFoundError from "./errors/NotFound";
 
 const app = express();
 const { PORT = 3000 } = process.env;
@@ -24,9 +24,9 @@ app.use((req: RequestUser, res: Response, next: NextFunction) => {
 app.use("/users", userRouter);
 app.use("/cards", cardRouter);
 
-app.all('*', (req: RequestUser, res: Response, next: NextFunction) => {
-  return next(new NotFoundError());
-});
+app.all("*", (req: RequestUser, res: Response, next: NextFunction) =>
+  next(new NotFoundError())
+);
 
 app.use(errorHandler);
 
