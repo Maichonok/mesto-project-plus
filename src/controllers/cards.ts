@@ -21,7 +21,7 @@ export const createCard = (
     })
     .catch((error) => {
       if (error.name === "BadRequest") {
-        throw new BadRequestError("Incorrect data provided");
+        return next(new BadRequestError("Incorrect data provided"));
       }
 
       next(error);
@@ -43,34 +43,39 @@ export const getAllCards = (
     });
 };
 
-export const deleteCard = async (
+export const deleteCard = (
   req: RequestUser,
   res: Response,
   next: NextFunction
 ) => {
-  const data = await card
+  card
     .findOneAndRemove({ _id: req.params.cardId })
-    .orFail(new Error("Roll number entered incorrected."));
-
-  res.send(data);
+    .then(data => {
+      if (!data) {
+        return next(NotFoundError());
+      }
+      res.send(data);
+    })
+    .catch(error => next(error))
 };
 
-export const likeCard = async (
+export const likeCard = (
   req: RequestUser,
   res: Response,
   next: NextFunction
 ) => {
-  const data = await card.findByIdAndUpdate(
+  card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user?._id } },
     { new: true }
-  );
-
-  if (!data) {
-    throw new NotFoundError();
-  }
-
-  res.send(data);
+  ).then(data => {
+    if (!data) {
+      return next(NotFoundError());
+    }
+    res.send(data);
+  }).catch(error => {
+    next(error);
+  });
 };
 
 export const dislikeCard = async (
@@ -78,15 +83,16 @@ export const dislikeCard = async (
   res: Response,
   next: NextFunction
 ) => {
-  const data = await card.findByIdAndUpdate(
+  await card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user?._id } },
     { new: true }
-  );
-
-  if (!data) {
-    throw new NotFoundError();
-  }
-
-  res.send(data);
+  ).then(data => {
+    if (!data) {
+      return next(NotFoundError());
+    }
+    res.send(data);
+  }).catch(error => {
+    next(error);
+  });
 };

@@ -14,7 +14,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
     })
     .catch((error) => {
       if (error.name === "BadRequest") {
-        throw new BadRequestError("Incorrect data was transmitted when creating a user");
+        return next(new BadRequestError("Incorrect data"));
       } else {
         next(error);
       }
@@ -41,11 +41,14 @@ export const getUserById = (
     .findById(req.params.id)
     .then((data) => {
       if (!data) {
-        throw new NotFoundError();
+        return next(new NotFoundError());
       }
       res.status(200).send(data);
     })
     .catch((error) => {
+      if (error.name === 'CastError') {
+        return next(new BadRequestError("Incorrect data"));
+      }
       next(error);
     });
 };
@@ -62,17 +65,17 @@ export const changeUserInfo = (
     { name: newName, about: newAbout },
     { new: true, runValidators: true }
   )
-    .orFail(() => {
-      throw new NotFoundError();
-    })
     .then((data) => {
+      if (!data) {
+        return next(new NotFoundError());
+      }
       res.status(200).send({ message: data });
     })
-    .catch((err) => {
-      if (err.name === 'BadRequest') {
-        throw new BadRequestError('Not valid data');
+    .catch((error) => {
+      if (error.name === 'BadRequest') {
+        return next(new BadRequestError('Invalid data'));
       } else {
-        next(err);
+        next(error);
       }
     });
 };
@@ -88,17 +91,17 @@ export const setNewAvatar = (
     { avatar: newAvatar },
     { new: true, runValidators: true }
   )
-    .orFail(() => {
-      throw new NotFoundError();
-    })
     .then((data) => {
+      if (!data) {
+        return next(new NotFoundError());
+      }
       res.status(200).send({ message: data });
     })
-    .catch((err) => {
-      if (err.name === 'BadRequest') {
-        throw new BadRequestError('Not valid data');
+    .catch((error) => {
+      if (error.name === 'BadRequest') {
+        return next(new BadRequestError('Not valid data'));
       } else {
-        next(err);
+        next(error);
       }
     });
 };
