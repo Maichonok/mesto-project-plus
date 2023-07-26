@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { RequestUser } from "../types/types";
 import user from "../models/user";
-
-const BadRequestError = require("../errors/BadRequest");
-const NotFoundError = require("../errors/NotFound");
+import BadRequestError from "../errors/BadRequest";
+import NotFoundError from "../errors/NotFound";
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
   const { name, about, avatar } = req.body;
@@ -13,7 +12,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
       res.status(200).send({ message: data });
     })
     .catch((error) => {
-      if (error.name === "BadRequest") {
+      if (error.name === "ValidationError") {
         return next(new BadRequestError("Incorrect data"));
       }
 
@@ -27,9 +26,7 @@ export const allUsers = (req: Request, res: Response, next: NextFunction) => {
     .then((data) => {
       res.send(data);
     })
-    .catch((error) => {
-      next(error);
-    });
+    .catch(next);
 };
 
 export const getUserById = (
@@ -76,7 +73,7 @@ export const changeUserInfo = (
       return res.status(200).send({ message: data });
     })
     .catch((error) => {
-      if (error.name === "BadRequest") {
+      if (error.name === "ValidationError") {
         return next(new BadRequestError("Invalid data"));
       }
 
@@ -104,7 +101,7 @@ export const setNewAvatar = (
       return res.status(200).send({ message: data });
     })
     .catch((error) => {
-      if (error.name === "BadRequest") {
+      if (error.name === "ValidationError") {
         return next(new BadRequestError("Not valid data"));
       }
 

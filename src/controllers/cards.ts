@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { RequestUser } from "../types/types";
 import card from "../models/card";
-
-const BadRequestError = require("../errors/BadRequest");
-const NotFoundError = require("../errors/NotFound");
+import BadRequestError from "../errors/BadRequest";
+import NotFoundError from "../errors/NotFound";
 
 export const createCard = (
   req: RequestUser,
@@ -20,7 +19,7 @@ export const createCard = (
       res.status(200).send({ message: data });
     })
     .catch((error) => {
-      if (error.name === "BadRequest") {
+      if (error.name === "ValidationError") {
         return next(new BadRequestError("Incorrect data provided"));
       }
 
@@ -38,9 +37,7 @@ export const getAllCards = (
     .then((data) => {
       res.send(data);
     })
-    .catch((error) => {
-      next(error);
-    });
+    .catch(next);
 };
 
 export const deleteCard = (
@@ -52,12 +49,17 @@ export const deleteCard = (
     .findOneAndRemove({ _id: req.params.cardId })
     .then((data) => {
       if (!data) {
-        return next(NotFoundError());
+        return next(new NotFoundError());
       }
 
       return res.send(data);
     })
-    .catch((error) => next(error));
+    .catch((error) => {
+      if (error.name === "CastError") {
+        return next(new BadRequestError("Incorrect data"));
+      }
+      return next(error);
+    });
 };
 
 export const likeCard = (
@@ -73,13 +75,16 @@ export const likeCard = (
     )
     .then((data) => {
       if (!data) {
-        return next(NotFoundError());
+        return next(new NotFoundError());
       }
 
       return res.send(data);
     })
     .catch((error) => {
-      next(error);
+      if (error.name === "CastError") {
+        return next(new BadRequestError("Incorrect data"));
+      }
+      return next(error);
     });
 };
 
@@ -96,12 +101,15 @@ export const dislikeCard = async (
     )
     .then((data) => {
       if (!data) {
-        return next(NotFoundError());
+        return next(new NotFoundError());
       }
 
       return res.send(data);
     })
     .catch((error) => {
-      next(error);
+      if (error.name === "CastError") {
+        return next(new BadRequestError("Incorrect data"));
+      }
+      return next(error);
     });
 };
