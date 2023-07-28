@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { JwtPayload } from 'jsonwebtoken';
 import { RequestUser } from "../types/types";
 import card from "../models/card";
 import BadRequestError from "../errors/BadRequest";

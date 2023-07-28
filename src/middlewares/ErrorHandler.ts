@@ -10,8 +10,9 @@ const errorHandler = (
   if (err instanceof CustomError) {
     res.status(err.statusCode).send(err.serializeErrors());
   } else {
+    console.log(err.message);
     res.status(500).send({
-      message: "Произошла ошибка",
+      message: "Error",
     });
   }
   next();

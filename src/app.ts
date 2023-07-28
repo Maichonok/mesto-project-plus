@@ -24,6 +24,7 @@ app.use((req: RequestUser, res: Response, next: NextFunction) => {
 app.use("/users", userRouter);
 app.use("/cards", cardRouter);
 
+
 app.all("*", (req: RequestUser, res: Response, next: NextFunction) =>
   next(new NotFoundError())
 );
