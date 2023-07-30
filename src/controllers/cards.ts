@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { JwtPayload } from 'jsonwebtoken';
 import { RequestUser } from "../types/types";
-import card from "../models/card";
+import Card from "../models/card";
 import BadRequestError from "../errors/BadRequest";
 import NotFoundError from "../errors/NotFound";
+import NotAllowed from "../errors/NotAllowed";
 
 export const createCard = (
   req: RequestUser,
@@ -14,8 +14,7 @@ export const createCard = (
 
   const userId = req.user?._id;
 
-  card
-    .create({ name, link, owner: userId })
+  Card.create({ name, link, owner: userId })
     .then((data) => {
       res.status(200).send({ message: data });
     })
@@ -33,34 +32,35 @@ export const getAllCards = (
   res: Response,
   next: NextFunction
 ) => {
-  card
-    .find({})
+  Card.find({})
     .then((data) => {
       res.send(data);
     })
     .catch(next);
 };
 
-export const deleteCard = (
+export const deleteCard = async (
   req: RequestUser,
   res: Response,
   next: NextFunction
 ) => {
-  card
-    .findOneAndRemove({ _id: req.params.cardId })
-    .then((data) => {
-      if (!data) {
-        return next(new NotFoundError());
-      }
+  Card.findById(req.params.cardId).then((card) => {
+    if (!card) {
+      return next(new NotFoundError());
+    }
+    if (card.owner.toString() !== req.user?._id) {
+      return next(new NotAllowed("You are not allowed to delete the card"));
+    }
 
-      return res.send(data);
-    })
-    .catch((error) => {
-      if (error.name === "CastError") {
-        return next(new BadRequestError("Incorrect data"));
-      }
-      return next(error);
-    });
+    return Card.findOneAndRemove({ _id: req.params.cardId })
+      .then((deleted) => res.send(deleted))
+      .catch((error) => {
+        if (error.name === "CastError") {
+          return next(new BadRequestError("Incorrect data"));
+        }
+        return next(error);
+      });
+  });
 };
 
 export const likeCard = (
@@ -68,12 +68,11 @@ export const likeCard = (
   res: Response,
   next: NextFunction
 ) => {
-  card
-    .findByIdAndUpdate(
-      req.params.cardId,
-      { $addToSet: { likes: req.user?._id } },
-      { new: true }
-    )
+  Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $addToSet: { likes: req.user?._id } },
+    { new: true }
+  )
     .then((data) => {
       if (!data) {
         return next(new NotFoundError());
@@ -94,12 +93,11 @@ export const dislikeCard = async (
   res: Response,
   next: NextFunction
 ) => {
-  await card
-    .findByIdAndUpdate(
-      req.params.cardId,
-      { $pull: { likes: req.user?._id } },
-      { new: true }
-    )
+  await Card.findByIdAndUpdate(
+    req.params.cardId,
+    { $pull: { likes: req.user?._id } },
+    { new: true }
+  )
     .then((data) => {
       if (!data) {
         return next(new NotFoundError());

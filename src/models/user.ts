@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
-
-mongoose.set('strictQuery', false);
+import NotAuthorizedError from "../errors/UnauthorizedError";
 
 interface IUser {
   email: string;
@@ -18,7 +17,7 @@ interface UserDoc extends mongoose.Document {
   name: string;
   about: string;
   avatar: string;
-};
+}
 
 const userShema = new mongoose.Schema<IUser>({
   email: {
@@ -27,13 +26,13 @@ const userShema = new mongoose.Schema<IUser>({
     unique: true,
     validate: {
       validator: (v: string) => validator.isEmail(v),
-      message: "invalid email",
+      message: "Invalid email",
     },
   },
   password: {
     type: String,
     required: true,
-    select: false,
+    select: false
   },
   name: {
     type: String,
@@ -58,26 +57,30 @@ const userShema = new mongoose.Schema<IUser>({
   },
 });
 
-interface UserModel extends mongoose.Model<UserDoc> {
-  findUserByCredentials(email: string, password: string): Promise<UserDoc>;
-};
+interface UserModel extends mongoose.Model<IUser> {
+  findUserByCredentials: (email: string, password: string) => Promise<mongoose.Document<unknown, any, IUser>>
+}
 
-const User = mongoose.model<UserDoc, UserModel>('user', userShema);
-
-userShema.static('findUserByCredentials', function findUserByCredentials(email: string, password: string) {
-  return this.findOne({ email }).then((existingUser: UserDoc) => {
-    if (!existingUser) {
-      return Promise.reject(new Error('User does not exist'));
-    }
-
-    return bcrypt.compare(password, existingUser.password).then((matched) => {
-      if (!matched) {
-        return Promise.reject(new Error('Wrong password'));
+userShema.static(
+  "findUserByCredentials",
+  function findUserByCredentials(email: string, password: string) {
+    return this.findOne({ email }).select("+password").then((existingUser: UserDoc) => {
+      if (!existingUser) {
+        return Promise.reject(new NotAuthorizedError("User does not exist"));
       }
+      return bcrypt
+        .compare(password, existingUser.password)
+        .then((matched) => {
+          if (!matched) {
+            return Promise.reject(new NotAuthorizedError("Wrong password"));
+          }
 
-      return existingUser;
+          return existingUser;
+        });
     });
-  });
-});
+  }
+);
+
+const User = mongoose.model<IUser, UserModel>("user", userShema);
 
 export default User;

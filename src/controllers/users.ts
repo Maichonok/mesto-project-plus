@@ -6,20 +6,17 @@ import User from "../models/user";
 import BadRequestError from "../errors/BadRequest";
 import NotFoundError from "../errors/NotFound";
 import ConflictError from "../errors/ConflictError";
-import NotAuthorizedError from "../errors/UnauthorizedError";
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
   const { name, about, avatar, email, password } = req.body;
   return bcrypt.hash(password, 5).then((hash: string) => {
-    User
-      .findOne({ email })
+    User.findOne({ email })
       .then((data) => {
         if (data?.email === email) {
-          throw new ConflictError("This email is already in use");
+          return next(new ConflictError("This email is already in use"));
         }
 
-        User
-          .create({ name, about, avatar, email, password: hash })
+        return User.create({ name, about, avatar, email, password: hash })
           .then((newUser) => {
             res.status(200).send(newUser);
           })
@@ -39,8 +36,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export const allUsers = (req: Request, res: Response, next: NextFunction) => {
-  User
-    .find({})
+  User.find({})
     .then((data) => {
       res.send(data);
     })
@@ -52,8 +48,7 @@ export const getUserById = (
   res: Response,
   next: NextFunction
 ) => {
-  User
-    .findById(req.params.id)
+  User.findById(req.params.id)
     .then((data) => {
       if (!data) {
         return next(new NotFoundError());
@@ -77,12 +72,11 @@ export const changeUserInfo = (
 ) => {
   const newName = req.body.name;
   const newAbout = req.body.about;
-  User
-    .findOneAndUpdate(
-      { _id: req.user },
-      { name: newName, about: newAbout },
-      { new: true, runValidators: true }
-    )
+  User.findOneAndUpdate(
+    { _id: req.user },
+    { name: newName, about: newAbout },
+    { new: true, runValidators: true }
+  )
     .then((data) => {
       if (!data) {
         return next(new NotFoundError());
@@ -92,7 +86,7 @@ export const changeUserInfo = (
     })
     .catch((error) => {
       if (error.name === "ValidationError") {
-        return next(new BadRequestError("Invalid data"));
+        return next(new BadRequestError(error.message));
       }
 
       return next(error);
@@ -105,12 +99,11 @@ export const setNewAvatar = (
   next: NextFunction
 ) => {
   const newAvatar = req.body.avatar;
-  User
-    .findOneAndUpdate(
-      { _id: req.user },
-      { avatar: newAvatar },
-      { new: true, runValidators: true }
-    )
+  User.findOneAndUpdate(
+    { _id: req.user },
+    { avatar: newAvatar },
+    { new: true, runValidators: true }
+  )
     .then((data) => {
       if (!data) {
         return next(new NotFoundError());
@@ -127,40 +120,38 @@ export const setNewAvatar = (
     });
 };
 
-export const getUserbyId = (
-  req: RequestUser,
-  res: Response,
-  next: NextFunction
-) => {
-  User
-  .findById(req.params.userId)
-    .orFail(() => {
-      throw new NotFoundError();
-    })
-    .then((data) => res.status(200).send(data))
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        next(new BadRequestError("Incorrect data"));
-      } else {
-        next(err);
-      }
-    });
-};
-
 export const login = (req: RequestUser, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      if (!user) {
-        return next(new NotAuthorizedError("Invalid login data"));
-      }
-
       const id = String(user._id);
-      const token = jwt.sign({ _id: id }, 'secret', {
-        expiresIn: '7d',
+      const token = jwt.sign({ _id: id }, "secret", {
+        expiresIn: "7d",
       });
       return res.send({ token });
     })
     .catch(next);
+};
+
+export const currentUser = (
+  req: RequestUser,
+  res: Response,
+  next: NextFunction
+) => {
+  User.findById(req.user?._id)
+    .then((data) => {
+      if (!data) {
+        return next(new NotFoundError());
+      }
+
+      return res.status(200).send(data);
+    })
+    .catch((error) => {
+      if (error.name === "CastError") {
+        return next(new BadRequestError("Incorrect data"));
+      }
+
+      return next(error);
+    });
 };
