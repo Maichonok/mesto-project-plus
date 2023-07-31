@@ -3,11 +3,8 @@ import CustomError from "./CustomError";
 export default class NotAllowed extends CustomError {
   statusCode = 405;
 
-  message = "";
-
-  constructor(message: string = "") {
+  constructor(message: string = "Not Allowed") {
     super(message);
-    this.message = message || "Not Allowed";
     Object.setPrototypeOf(this, NotAllowed.prototype);
   }
 

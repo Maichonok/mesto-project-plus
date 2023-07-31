@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { Error } from "mongoose";
 import { RequestUser } from "../types/types";
 import Card from "../models/card";
 import BadRequestError from "../errors/BadRequest";
@@ -16,10 +17,10 @@ export const createCard = (
 
   Card.create({ name, link, owner: userId })
     .then((data) => {
-      res.status(200).send({ message: data });
+      res.status(201).send(data);
     })
     .catch((error) => {
-      if (error.name === "ValidationError") {
+      if (error instanceof Error.ValidationError) {
         return next(new BadRequestError("Incorrect data provided"));
       }
 
@@ -39,28 +40,31 @@ export const getAllCards = (
     .catch(next);
 };
 
-export const deleteCard = async (
+export const deleteCard = (
   req: RequestUser,
   res: Response,
   next: NextFunction
 ) => {
-  Card.findById(req.params.cardId).then((card) => {
-    if (!card) {
-      return next(new NotFoundError());
-    }
-    if (card.owner.toString() !== req.user?._id) {
-      return next(new NotAllowed("You are not allowed to delete the card"));
-    }
+  Card.findById(req.params.cardId)
+    .then((card) => {
+      if (!card) {
+        return next(new NotFoundError());
+      }
+      if (card.owner.toString() !== req.user?._id) {
+        return next(new NotAllowed("You are not allowed to delete the card"));
+      }
 
-    return Card.findOneAndRemove({ _id: req.params.cardId })
-      .then((deleted) => res.send(deleted))
-      .catch((error) => {
-        if (error.name === "CastError") {
-          return next(new BadRequestError("Incorrect data"));
-        }
-        return next(error);
-      });
-  });
+      return card
+        .deleteOne()
+        .then((deleted) => res.send(deleted))
+        .catch(next);
+    })
+    .catch((error) => {
+      if (error instanceof Error.CastError) {
+        return next(new BadRequestError("Incorrect data"));
+      }
+      return next(error);
+    });
 };
 
 export const likeCard = (
@@ -81,7 +85,7 @@ export const likeCard = (
       return res.send(data);
     })
     .catch((error) => {
-      if (error.name === "CastError") {
+      if (error instanceof Error.CastError) {
         return next(new BadRequestError("Incorrect data"));
       }
       return next(error);
@@ -106,7 +110,7 @@ export const dislikeCard = async (
       return res.send(data);
     })
     .catch((error) => {
-      if (error.name === "CastError") {
+      if (error instanceof Error.CastError) {
         return next(new BadRequestError("Incorrect data"));
       }
       return next(error);

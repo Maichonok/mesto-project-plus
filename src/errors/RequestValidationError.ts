@@ -4,7 +4,7 @@ import CustomError from "./CustomError";
 export default class RequestValidationError extends CustomError {
   errors: FieldValidationError[];
 
-  statusCode = 400;
+  statusCode = 422;
 
   constructor(errors: FieldValidationError[]) {
     super("Invalid request parameters");
@@ -18,7 +18,7 @@ export default class RequestValidationError extends CustomError {
   serializeErrors() {
     return this.errors.map((e) => ({
       message: e.msg,
-      field: e.path
+      field: e.path,
     }));
   }
 }
