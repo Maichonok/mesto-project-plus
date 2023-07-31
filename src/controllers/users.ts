@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Error } from "mongoose";
 import { RequestUser } from "../types/types";
-import User, { UserDoc } from "../models/user";
+import User from "../models/user";
 import BadRequestError from "../errors/BadRequest";
 import UnauthorizedError from "../errors/UnauthorizedError";
 import NotFoundError from "../errors/NotFound";
@@ -79,11 +79,7 @@ const updateUserInfo = (
   updateUser(["name", "about"], req, res, next);
 };
 
-const updateAvatar = (
-  req: RequestUser,
-  res: Response,
-  next: NextFunction
-) => {
+const updateAvatar = (req: RequestUser, res: Response, next: NextFunction) => {
   updateUser(["avatar"], req, res, next);
 };
 
@@ -117,50 +113,22 @@ export const login = (req: RequestUser, res: Response, next: NextFunction) => {
     .catch(next);
 };
 
-const findUserById = async (
-  res: Response,
-  next: NextFunction,
-  id: string = ""
-): Promise<UserDoc | null> => {
-  try {
-    const user = await User.findById(id);
-
-    if (!user) {
-      next(new NotFoundError());
-      return null;
-    }
-    res.status(200).send(user);
-
-    return user;
-  } catch (e) {
-    next(e);
-    return null;
-  }
+const findUserById = (res: Response, next: NextFunction, id: string = "") => {
+  User.findById(id)
+    .then((user) => {
+      if (!user) {
+        return next(new NotFoundError());
+      }
+      return res.status(200).send(user);
+    })
+    .catch(next);
 };
-
-const cachingDecorator = (func: Function) => {
-  const cache = new Map();
-
-  return async (res: Response, next: NextFunction, id: string = "") => {
-    if (cache.has(id)) {
-      return res.send(cache.get(id));
-    }
-
-    const result = await func(res, next, id);
-    if (result) {
-      cache.set(id, result);
-    }
-    return result;
-  };
-};
-
-const findUserCached = cachingDecorator(findUserById);
 
 export const currentUser = (
   req: RequestUser,
   res: Response,
   next: NextFunction
-) => findUserCached(res, next, req.user?._id);
+) => findUserById(res, next, req.user?._id);
 
 export const getUserById = (req: Request, res: Response, next: NextFunction) =>
-  findUserCached(res, next, req.params.id);
+  findUserById(res, next, req.params.id);
